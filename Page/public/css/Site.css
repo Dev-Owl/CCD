@@ -1,0 +1,52 @@
+canvas 
+	{
+		background:#f0f0f0;
+		border:1px #3d3d3d solid;
+	}
+.top-space
+{
+	padding-top:5px;
+	
+}
+.draw{
+		min-height:600px;
+		height:600px;
+		margin-bottom:10px;
+		padding-right:0px !important;
+	}
+.chat
+{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.chat li
+{
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    padding-right: 2px;
+	border-bottom: 1px dotted #B3A9A9;
+	
+}
+
+
+.chat li.left .message-body
+{
+    padding-left: 2px;
+}
+
+.chat li .message-body p
+{
+    margin: 0;
+    color: #777777;
+}
+
+.chat-body
+{
+    overflow-y: scroll;
+    height:561px; /* 600 draw area - 34 px input + 5 margin-bottom  */
+	min-height:561px;
+	margin-bottom:5px;
+	border-left: 1px #3d3d3d solid;
+}

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>CCD-Chris can draw</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="css/Site.css"/>
+	<link rel="stylesheet" type="text/css" href="css/animate.css"/>
+  </head>
+  <body>
+	<div class="container-fluid top-space">
+		<div class="row">
+			<div class="col-sm-9 col-md-6 col-lg-8 draw">
+				<canvas id="drawArea"></canvas> 
+			</div>
+			<div class="col-sm-3 col-md-6 col-lg-4 draw">
+				<div class="chat-body">
+					<ul class="chat">
+						<li class="left clearfix">
+							<div class="message-body clearfix">
+								<p>
+									Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornare
+									dolor, quis ullamcorper ligula sodales.
+								</p>
+							</div>
+						</li>
+						<li class="left clearfix">
+							<div class="message-body clearfix">
+								<p>
+									Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornare
+									dolor, quis ullamcorper ligula sodales.
+								</p>
+							</div>
+						</li>
+						<li class="left clearfix">
+							<div class="message-body clearfix">
+								<p>
+									Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornare
+									dolor, quis ullamcorper ligula sodales.
+								</p>
+							</div>
+						</li>
+					</ul>
+				</div>
+				<div  class="form-inline">
+					<input type="text" class="form-control" style="width:80%" id="chatMsg">
+					<button type="button" class="btn btn-primary">Send</button> 
+				</div>
+			</div>
+		</div>
+		<button type="button" class="btn btn-primary pull-left" onclick="clearDraw();";>Clear</button> 
+		<button type="button" class="btn btn-primary pull-right">Back to Lobby</button> 
+	</div>
+	<footer class="text-center">
+		<p class="text-muted">&copy by Christian Muehle info@devowl.de</p>
+	</footer>
+	<script type="text/javascript" src="js/jquery-v2.2.3.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap-notify.min.js"></script>
+	<script type="text/javascript" src="js/ccd.draw-v0.1.js"></script>
+	<script type="text/javascript">
+		var ccd = null;
+		$(document).ready(function(){
+			var canvas = document.querySelector('canvas');
+			fitToContainer(canvas);
+			ccd = ccdCanvas({element: 'drawArea',drawFrom: drawFrom,drawTo:drawTo});
+			window.onresize = function(event) {
+				var canvas = document.querySelector('canvas');
+				var oldContent = ccd.getContent();
+				fitToContainer(canvas);
+				ccd.setContent(oldContent);
+			};
+		});
+		
+		function clearDraw(){
+			ccd.clear();
+		}
+		
+		function drawFrom(e){
+			
+		}
+		function drawTo(e){
+		
+		}
+		
+		function fitToContainer(canvas){
+			// Make it visually fill the positioned parent
+			canvas.style.width ='100%';
+			canvas.style.height='100%';
+			// ...then set the internal size to match
+			canvas.width  = canvas.offsetWidth;
+			canvas.height = canvas.offsetHeight;
+		}
+
+	</script>
+ </body>
+</html>
