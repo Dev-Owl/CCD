@@ -9,6 +9,7 @@
   "author": "Christian Muhele info@devowl.de",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.14.0"
+    "express-ws": "^2.0.0",
+    "node-uuid": "^1.4.7"
   }
 }

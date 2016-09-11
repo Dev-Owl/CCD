@@ -1,9 +1,35 @@
-var express = require('express'),
-	app = express();
- 
+var express = require('express');
+var app = express();
+var expressWs = require('express-ws')(app);
+var uuid = require('node-uuid');
+//load config
+var config  = require('./config');
+
+//init groups
+var groupManager = require('./group').initGroups(config,app);
+
+
+//Init web server
 app.use(express.static('public'));
-app.post('/groups', function(req, res){
-	res.send("It works");
+
+//configure ajax callbacks
+app.get('/TableGroups', function(req, res){
+	console.log(JSON.stringify(req.query,null,4));
+	res.send(groupManager.sendGroups(req.query.groupNameFilter,req.query.order,req.query.draw));
 });
- 
+
+app.post('/CreateGroup',function (req,res){
+
+});
+
+//init websokets
+app.ws('/ccdWS',function(ws,req){
+	console.log("Connected new client");
+	ws.on('message', function connection(msg) {
+		ws.send(msg);
+		console.log("message from client "+ msg);
+	});
+});
+console.log("Server ready and starting");
+
 app.listen(8080);
