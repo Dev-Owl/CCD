@@ -14,7 +14,7 @@ app.use(express.static('public'));
 
 //configure ajax callbacks
 app.get('/TableGroups', function(req, res){
-	console.log(JSON.stringify(req.query,null,4));
+	//TODO Could be a good idea to make it async
 	res.send(groupManager.sendGroups(req.query.groupNameFilter,req.query.order,req.query.draw));
 });
 

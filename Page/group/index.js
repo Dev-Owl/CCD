@@ -23,7 +23,7 @@ function groups(config,app){
 	this.cleanUp=function(){
 
 	};
-
+ 	//TODO add a complete callback to allow async
 	this.sendGroups = function(filter,order,drawNumber){
 		var groupViewModel = new Array();
     var nameFilter = null;
@@ -40,6 +40,7 @@ function groups(config,app){
 			order = order[0];
 		}
 
+		//TODO:Make async with settimeout 0 and a callback
 		for(var i=0, len = this.groups.length; i <len; i++){
       //Apply filter
 			if(nameFilter && this.groups[i].groupname.toLowerCase().indexOf(nameFilter) == -1){
