@@ -1,6 +1,9 @@
 var config = {};
-config.maxGroupNameLength = 50;
+config.maxGroupNameLength = 25;
+config.maxUserNameLenght = 25
 config.totalGroups=150;
 config.maxGroupsOnScreen=35;
 config.defaultGroups =[{groupname:'Chris can draw',password:'peter'},{groupname:'Erntedank',password:'miau'},{groupname:'Hello world',password:''}];
+config.eventList = ['joinGroup','requestGroup'];
+config.messageLimit = 256;
 module.exports = config;

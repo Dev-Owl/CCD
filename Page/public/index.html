@@ -164,6 +164,9 @@
     }
 
     function newMessage(event){
+      //TODO add real handler for messages here
+      //TODO join group could be done with fake post like here https://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
+
       InfoMe("WS",event.data);
       if(pendingCreation){
         setTimeout(function () {

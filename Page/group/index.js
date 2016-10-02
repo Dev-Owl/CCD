@@ -1,8 +1,9 @@
-function groups(config,app){
+function groups(config,app,ccdEvents){
 	this.app = app;
 	this.config = config;
 	this.groups = new Array();
 	this.uuid = require('node-uuid');
+	this.ccdEvent = ccdEvents;
 
 	this.init = function(){
 		var dGroups = this.config.defaultGroups;
@@ -11,14 +12,59 @@ function groups(config,app){
 								id:this.uuid.v4(),
 								groupname:dGroups[i].groupname,
 								password:dGroups[i].password,
-								player: 0
+								player: []
 							 });
 		}
 	};
 
-	this.addGroup = function(group){
+	this.addGroup = function(data,ws){
 
 	};
+
+	this.generateUser = function(userName,userRole,ws){
+		return {id : this.uuid.v4(),name: userName, role:userRole,ws};
+	}
+	this.userFree = function(players,newUser){
+		for(var i=0, len = players.length; i <len; i++){
+			if(players[i].name === newUser)
+					return false;
+		}
+		return true;
+	}
+
+	this.joinGroup = function(data,ws){
+			var response = {rType:"joinGroup",result:{go:false,msg:""}};
+			if(data && data.group && data.user && data.user.length <= this.config.maxUserNameLenght){
+				for(var i=0, len = this.groups.length; i <len; i++){
+						if(this.groups[i].id == data.group){
+								if(this.groups[i].password === data.pw){
+										if(this.userFree(this.groups[i].player,data.user))
+										{
+												var newRole = this.groups[i].player.length > 0 ? 'guess':'draw';
+												var newPlayer = this.generateUser(data.user,newRole,ws);
+												this.groups[i].player.push(newPlayer);
+												response.result.msg = "Go go go";
+												response.result.go  = true;
+												response.result.uID = newPlayer.id;
+												this.ccdEvent.emit('updateGroupData');
+										}
+										else{
+											response.result.msg="Username not free";
+										}
+
+								}
+								else{
+									response.result.msg="Invalid password";
+									break;
+								}
+						}
+				}
+			}
+			else {
+				response.result.msg="Invalid request";
+			}
+			ws.send(JSON.stringify(response));
+	}
 
 	this.cleanUp=function(){
 
@@ -50,7 +96,7 @@ function groups(config,app){
 				this.groups[i].id,
 				!(this.groups[i].password ===""),
 				this.groups[i].groupname,
-				this.groups[i].player]);
+				this.groups[i].player.length]);
 		}
 
 
@@ -63,7 +109,8 @@ function groups(config,app){
 			  return (a[order.column] > b[order.column]) ? -1 : 1;
 		});
 		groupViewModel.splice(0,Math.max(groupViewModel.length- this.config.maxGroupsOnScreen,0));
-
+		//if time clean up
+		setTimeout(this.cleanUp(),0);
 		return JSON.stringify({
 													 draw:drawNumber,
 													 data:groupViewModel,
@@ -73,9 +120,14 @@ function groups(config,app){
 	};
 }
 
-exports.initGroups = function(config,app){
+exports.initGroups = function(config,app,ccdEvents){
 
-	var manager = new groups(config,app);
+	var manager = new groups(config,app,ccdEvents);
 	manager.init();
+	ccdEvents.on('joinGroup',function joinGroupEvent(data,ws) {
+		manager.joinGroup(data,ws)
+	} );
+
+	ccdEvents.on('requestGroup',manager.addGroup);
 	return manager;
 };
