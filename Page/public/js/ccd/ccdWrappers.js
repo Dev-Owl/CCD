@@ -1,6 +1,6 @@
 
 
-//---------------------------_Notify Wrappers ---------------------------------
+//--------------------------- Notify Wrappers ---------------------------------
 //Shows info message to the user
 function InfoMe(Title,Text){
     return __notification(Title,Text,5000,'info',true);
@@ -43,4 +43,25 @@ function __notification(Title,Text,AutoDismiss,Type,AllowClose,Progress){
              });
 
 }
-//---------------------------_Notify Wrappers ---------------------------------
+//--------------------------- Notify Wrappers ---------------------------------
+
+
+//--------------------------- Misc helpers ------------------------------------
+function post(path, parameters) {
+    var form = $('<form></form>');
+
+    form.attr("method", "post");
+    form.attr("action", path);
+
+    $.each(parameters, function(key, value) {
+        var field = $('<input></input>');
+        field.attr("type", "hidden");
+        field.attr("name", key);
+        field.attr("value", value);
+        form.append(field);
+    });
+    $(document.body).append(form);
+    form.submit();
+}
+
+//--------------------------- Misc helpers ------------------------------------

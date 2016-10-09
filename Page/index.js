@@ -35,7 +35,9 @@ app.get('/TableGroups', function(req, res){
 	//TODO Could be a good idea to make it async
 	res.send(groupManager.sendGroups(req.query.groupNameFilter,req.query.order,req.query.draw));
 });
-
+app.post("/group",function(req,res){
+	groupManager.joinProgress(req,res);
+});
 
 //init websokets
 app.ws('/ccdWS',function(ws,req){
@@ -57,6 +59,7 @@ app.ws('/ccdWS',function(ws,req){
 
 	});
 });
+
 ccdEvents.on("updateGroupData",function(){
 		expressWs.getWss().clients.forEach((client) => {
 				//TODO Add reall response object for client here

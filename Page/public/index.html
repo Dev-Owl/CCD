@@ -165,15 +165,26 @@
 
     function newMessage(event){
       //TODO add real handler for messages here
-      //TODO join group could be done with fake post like here https://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
-
       InfoMe("WS",event.data);
+      var data = JSON.parse(event.data);
+
       if(pendingCreation){
-        setTimeout(function () {
+        //Check response for add/join request
+        if(data.rType == "requestGroup" || data.rType == "joinGroup"){
+          if(data.result.go){
+            pendingCreation.update({'type': 'success', 'message': data.result.msg, 'progress': 100});
+            setTimeout(post("/group",{user:data.result.uID,group: data.result.groupID}),1000);
+          }
+          else{
+            pendingCreation.update({'type': 'danger', 'message': data.result.msg, 'progress': 100,allow_dismiss:true});
+            $('#btnNewRoom').prop( "disabled", false );
+            $('#joinRoom').data("roomID","");
+          }
+        }
+        /*setTimeout(function () {
           pendingCreation.update({'type': 'danger', 'message': 'Not implemented now', 'progress': 100});
-          $('#btnNewRoom').prop( "disabled", false );
-          $('#joinRoom').data("roomID","");
-        },3000);
+
+        },3000);*/
       }
     }
     function conOpen(event){
