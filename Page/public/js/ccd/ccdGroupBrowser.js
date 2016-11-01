@@ -34,8 +34,6 @@ function initGroupBrowser(){
   });
 
   $('#groups tbody').on('click', 'tr', function () {
-    if($('#joinRoom').data("roomID"))
-      return;
     var data = table.row(this).data();
     var title = data[2];
     if(title.length > 30){

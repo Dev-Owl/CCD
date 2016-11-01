@@ -49,12 +49,12 @@
 				</div>
 				<div  class="form-inline">
 					<input type="text" class="form-control" style="width:80%" id="chatMsg">
-					<button type="button" class="btn btn-primary">Send</button>
+					<button type="button" class="btn btn-primary" onclick="sendMessage()">Send</button>
 				</div>
 			</div>
 		</div>
 		<button type="button" class="btn btn-primary pull-left" onclick="clearDraw();";>Clear</button>
-		<button type="button" class="btn btn-primary pull-right">Back to Lobby</button>
+		<button type="button" class="btn btn-primary pull-right" onclick="leaveGroup();">Back to Lobby</button>
 	</div>
 	<footer class="text-center">
 		<p class="text-muted">&copy by Christian Muehle info@devowl.de</p>
@@ -62,12 +62,14 @@
 	<script type="text/javascript" src="js/jquery-v2.2.3.min.js"></script>
 	<script type="text/javascript" src="js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="js/bootstrap-notify.min.js"></script>
-	<script type="text/javascript" src="js/ccd.draw-v0.1.js"></script>
+	<script type="text/javascript" src="js/ccd/ccddraw-v0.1.js"></script>
+  <script type="text/javascript" src="js/ccd/ccdWebSocket.js"></script>
 	<script type="text/javascript">
 		var ccd = null;
     //Will be replaced by node js
     var userID = @USERID;
     var groupID = @GROUPID;
+    var ws = null;
 
 		$(document).ready(function(){
 			var canvas = document.querySelector('canvas');
@@ -79,7 +81,25 @@
 				fitToContainer(canvas);
 				ccd.setContent(oldContent);
 			};
+      ws = initWS("ws://192.168.1.8:8080/ccdWS",newMessage,conOpen);
 		});
+
+    function newMessage(event)
+    {
+        var data = JSON.parse(event.data);
+        if(data.rType =="chat"){
+          addMessage(data.message);
+        }
+
+    }
+
+    function conOpen(event)
+    {
+      var joinCompleted = {usr:userID,grp:groupID};
+      wsSend(BuildRequest("groupRegister",joinCompleted),function(){
+           $('#chatMsg').val(""); // clear message
+      });
+    }
 
 		function clearDraw(){
 			ccd.clear();
@@ -91,6 +111,35 @@
 		function drawTo(e){
 
 		}
+    function leaveGroup(){
+      var leave = {usr:userID,grp:groupID};
+      wsSend(BuildRequest("leaveGroup",leave),function(){
+           top.location ="http://192.168.1.8:8080";
+      });
+    }
+
+    function addMessage(Message){
+      var message = '<li class="left clearfix message-body"></li>';
+      var messageSystem = '<li class="left clearfix message-bodyserver"></li>';
+      if(Message.broadcast){
+            $('.chat').append($(messageSystem).text(Message.txt));
+      }
+      else{
+          //user messsage
+          $('.chat').append($(message).text(Message.txt));
+      }
+
+    }
+
+    function sendMessage() {
+        var message = $('#chatMsg').val();
+        if(message){
+          var newMessage = {usr: userID,grp: groupID,txt:message};
+          wsSend(BuildRequest("chat",newMessage),function(){
+               $('#chatMsg').val(""); // clear message
+          });
+        }
+    }
 
 		function fitToContainer(canvas){
 			// Make it visually fill the positioned parent

@@ -36,10 +36,15 @@ canvas
     padding-left: 2px;
 }
 
-.chat li .message-body p
+.message-body
 {
     margin: 0;
     color: #777777;
+}
+
+.message-bodyserver
+{
+    color: #26FC00;
 }
 
 .chat-body
