@@ -24,24 +24,9 @@
 						<li class="left clearfix">
 							<div class="message-body clearfix">
 								<p>
-									Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornare
-									dolor, quis ullamcorper ligula sodales.
-								</p>
-							</div>
-						</li>
-						<li class="left clearfix">
-							<div class="message-body clearfix">
-								<p>
-									Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornare
-									dolor, quis ullamcorper ligula sodales.
-								</p>
-							</div>
-						</li>
-						<li class="left clearfix">
-							<div class="message-body clearfix">
-								<p>
-									Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur bibendum ornare
-									dolor, quis ullamcorper ligula sodales.
+									Welcome, you are now part of this group.
+                  To chat just type your message, commands are started with a '\'.
+                  Type <b>\h</b> for help.
 								</p>
 							</div>
 						</li>
@@ -70,6 +55,7 @@
     var userID = @USERID;
     var groupID = @GROUPID;
     var ws = null;
+    var drawData = [];
 
 		$(document).ready(function(){
 			var canvas = document.querySelector('canvas');
@@ -82,6 +68,10 @@
 				ccd.setContent(oldContent);
 			};
       ws = initWS("ws://192.168.1.8:8080/ccdWS",newMessage,conOpen);
+      $('#chatMsg').on('keydown',function(e){
+          if(e.which ==13)
+            sendMessage();
+      });
 		});
 
     function newMessage(event)
@@ -106,11 +96,15 @@
 		}
 
 		function drawFrom(e){
-
+      drawData.push([e.clientX,e.clientY]);
+      var drawData = {usr:userID,grp:groupID,x:e.clientX,y:e.clientY};
+      wsSend(BuildRequest("drawFrom",drawData));
 		}
 		function drawTo(e){
-
+      var drawData = {usr:userID,grp:groupID,x:e.clientX,y:e.clientY};
+      wsSend(BuildRequest("drawTo",drawData));
 		}
+
     function leaveGroup(){
       var leave = {usr:userID,grp:groupID};
       wsSend(BuildRequest("leaveGroup",leave),function(){

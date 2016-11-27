@@ -3,14 +3,21 @@
 	search( {propA = valueA,propB = valueB},stopOnFirst)
 */
 function groups(config,app,ccdEvents){
+	//Ref to webserver and running app
 	this.app = app;
+	//Ref to global config
 	this.config = config;
+	//Groups hosted by ccd
 	this.groups = new Array();
+	//GUID module for nodejs
 	this.uuid = require('node-uuid');
+	//Form parsing module for nodejs
 	this.formidable = require('formidable');
+	//File system layer for nodejs
 	this.fs = require('fs');
+	//Event handler for CCD events
 	this.ccdEvent = ccdEvents;
-
+	//Init function to setup defaults for ccd, called once by plugin init
 	this.init = function(){
 		var dGroups = this.config.defaultGroups;
 		for(var i=0, len = dGroups.length; i< len; i++){
@@ -24,6 +31,7 @@ function groups(config,app,ccdEvents){
 		}
 	};
 
+	//Add a new group, requires socket and group data
 	this.addGroup = function(data,ws){
 		console.log(data);
 		var response = {rType:"requestGroup",result:{go:false,msg:""}};
@@ -55,7 +63,7 @@ function groups(config,app,ccdEvents){
 				//Add the creating using wih a randome name as drawer in the group
 				var randomNames = this.config.randomNames;
 				var newPlayer = this.generateUser(randomNames[Math.floor(Math.random()*randomNames.length)],
-																					'draw' // only one in the room
+																					'draw' // only one in the room,
 																				);
 				response.result.uID = newPlayer.id;
 				response.result.groupID = newGroup.id;
@@ -72,9 +80,12 @@ function groups(config,app,ccdEvents){
 		setTimeout(this.cleanUp(),0);
 	};
 
+	//Generates a new user with the given role (not added to a group)
 	this.generateUser = function(userName,userRole){
 		return {id : this.uuid.v4(),name: userName, role:userRole,soc:null};
 	}
+
+	//Checks if the user name is avalible in the given user list (group)
 	this.userFree = function(players,newUser){
 		for(var i=0, len = players.length; i <len; i++){
 			if(players[i].name === newUser)
@@ -83,6 +94,7 @@ function groups(config,app,ccdEvents){
 		return true;
 	}
 
+	//Tries to join a user in a group, socket and join data required
 	this.joinGroup = function(data,ws){
 			var response = {rType:"joinGroup",result:{go:false,msg:""}};
 			if(data && data.group && data.user && data.user.length <= this.config.maxUserNameLenght){
@@ -119,11 +131,12 @@ function groups(config,app,ccdEvents){
 			//if time clean up
 			setTimeout(this.cleanUp(),0);
 	}
-
+	//Clean up empty groups
 	this.cleanUp=function(){
 		//TODO add code here or it will get messy
 	};
- 	//TODO add a complete callback to allow async
+
+ 	//Sends groups to the front page, depending on the filter and order
 	this.sendGroups = function(filter,order,drawNumber){
 		var groupViewModel = new Array();
     var nameFilter = null;
@@ -173,6 +186,7 @@ function groups(config,app,ccdEvents){
 												 });
 	};
 
+	//Called by the front page after a sucssesfull call to joinGroup
 	this.joinProgress = function(req,res){
 			var form = new this.formidable.IncomingForm();
 			var manager = this;
@@ -241,29 +255,166 @@ function groups(config,app,ccdEvents){
 				});
 	}
 
+	//Send a chat message in the group
 	this.chatMessage = function(data,ws){
+		  console.log("chat message");
 			if(data.usr && data.grp && data.txt){
 				var authData = this.validRequest(data.usr,data.grp);
 				if(authData)
 				{
-						this.broadcastToGroup(authData.grp, {rType:'chat' ,message: { txt:authData.usr.name+":"+data.txt,broadcast:false}});
+					 data.usr.soc = ws; // ensure soc is active
+					 console.log("chat message -> valid user");
+					 //Ensure that it is not a command first character is \
+					 if(data.txt.length > 0 && data.txt[0] === '\\')
+					 {
+						 	console.log("Command request");
+						 	this.commandMessage(data.txt,ws,authData);
+					 }
+					 else
+					 {
+						 this.broadcastToGroup(authData.grp,
+							 	this.buildChatMessage(authData.usr.name+": "+data.txt,false));
+					 }
+				}
+				else{
+					console.log("chat message -> invalid user");
 				}
 			}
 	};
+	//Build chat response, also used for server to user messages
+	this.buildChatMessage = function(text,serverMessage){
+		var response = this.buildResponse("chat");
+		response.message = {txt: text,broadcast:serverMessage};
+		return response;
+	};
 
+  //Build basic response object that is used in any response to the client
+	this.buildResponse = function(type){
+		return {
+							rType:type
+					 };
+	};
+
+	//Works on a command message, all starting with \
+	this.commandMessage = function(message,ws,authData){
+			//Split into the different parts
+			var commandParts = message.split(/[ ]+/);
+			//Ensure that we have at least one part
+			if(commandParts.length >0){
+					var command = commandParts[0].replace("\\","");
+					console.log("searching for "+command);
+					console.log("we have " +JSON.stringify(this.config.commands));
+					var index = this.config.commands.indexOf(command);
+					if(index >= 0){
+						switch (this.config.commands[index]) {
+							case 'h':
+							case 'help':
+									this.helpTextToUser(authData,ws,true);
+									break;
+							case 'g':
+							case 'guess':
+									this.checkGuess(ws,commandParts,authData);
+									break;
+							case 'r':
+							case 'room':
+									this.roomToUser(ws,authData);
+									break;
+							case 'w':
+							case 'whisper':
+									this.whisperTo(ws,commandParts,authData);
+									break;
+							default:
+									this.helpTextToUser(authData,ws,false,"Oh, something went wrong :)");
+						}
+					}
+					else{
+						//No idea whats it is
+						this.helpTextToUser(authData,ws,false,"Unknown or disabled command!");
+					}
+			}
+			else {
+				this.helpTextToUser(authData,ws,false,"Invalid command!");
+			}
+	};
+
+	//Send the help text either full or small to a given user
+	this.helpTextToUser = function(authData,ws,full,hint){
+		if(!full){
+			this.sendToUser(authData,this.buildChatMessage(hint+" For full help use \\h command.",true));
+		}
+		else{
+			if(!hint){
+				hint =""; //ensure it is just an empty string
+			}
+			this.sendToUser(authData,this.buildChatMessage(hint+"You can use the following commands:\n \\g for guess -> \\g cat \n \\w for whisper -> \\w user message \n \\r for room info -> \\r ",true));
+		}
+
+	};
+	//Update socket of the user
+	this.pingFromClient = function(data,ws){
+		if(data.usr && data.grp){
+			var authData = this.validRequest(data.usr,data.grp);
+			if(authData)
+			{
+				authData.usr.soc = ws;
+			}
+		}
+	};
+
+	//send a message to a single user
+	this.sendToUser = function(authData, message){
+		var message = JSON.stringify(message);
+		if(authData.usr.soc && authData.usr.soc.readyState === 1){
+			authData.usr.soc.send(message);
+		}
+		else if(authData.usr.soc && authData.usr.soc.readyState != 1 )
+		{
+			console.log(authData.grp);
+			this.removePlayer(authData.grp,authData.usr.id);
+		}
+	};
+
+	//validate a guess for a group, socket splitted comamnd authData of the user
+	this.checkGuess = function(ws,command,authData){
+				//TODO Implement logic here
+				console.log("guess from user");
+				this.sendToUser(authData,this.buildChatMessage("No no no, not done yet!",true));
+	};
+
+	//sends the user list of the given room to the given user
+	this.roomToUser = function(ws,authData){
+			var message = "Users in this room:\n";
+			for(var i=0, len = authData.grp.player.length; i <len; i++)
+			{
+				message +=authData.grp.player[i].name +"\n";
+			}
+			this.sendToUser(authData,this.buildChatMessage(message,true));
+	};
+
+	//whisper to the given user
+	this.whisperTo = function(ws,command,authData){
+				//TODO Implement logic here
+				this.sendToUser(authData,this.buildChatMessage("No no no, not done yet!",true));
+	};
+
+	//Called to send a message/data to all members in a group
 	this.broadcastToGroup = function(group,message){
+		var message = JSON.stringify(message);
+		console.log(message);
 		for(var i=0, len = group.player.length; i <len; i++){
 				if(group.player[i].soc && group.player[i].soc.readyState === 1){
-					group.player[i].soc.send(JSON.stringify(message));
+					group.player[i].soc.send(message);
 				}
 				else if(group.player[i].soc && group.player[i].soc.readyState != 1 )
 				{
-					console.log(group);
+					console.log("dead session");
+					console.log(group.player[i]);
 					this.removePlayer(group,group.player[i].id);
 				}
 		}
 	};
 
+	//Validates are request/message from and to a group
 	this.validRequest =function(userID,groupID){
 			var group = this.getGroupByID(groupID);
 			var user = this.userInGroup(group.player,userID);
@@ -274,6 +425,7 @@ function groups(config,app,ccdEvents){
 			return null;
 	};
 
+	//Checks if the given user is in the user list
 	this.userInGroup = function(players,userID){
 		for(var i=0, len = players.length; i <len; i++){
 			if(players[i].id === userID)
@@ -282,6 +434,7 @@ function groups(config,app,ccdEvents){
 		return null;
 	};
 
+	//Gets the group object by the GUID
 	this.getGroupByID = function(groupID){
 		for(var i=0, len = this.groups.length; i <len; i++){
 				if(this.groups[i].id == groupID){
@@ -290,15 +443,21 @@ function groups(config,app,ccdEvents){
 			}
 	};
 
+	//Informs user about a new user in a given group
 	this.groupRegisterCompleted = function(data,ws){
 		var authData = this.validRequest(data.usr,data.grp);
 		if(authData)
 		{
+			console.log(authData.usr);
+			if(authData.usr.soc && authData.usr.soc.readyState != 1){
+					authData.usr.soc = null;console.log("Dead connection stored for current user reset to null");
+			}
 			this.broadcastToGroup(authData.grp,{rType:'chat' ,message: { txt:"User "+authData.usr.name+" joined",broadcast:true}});
 			authData.usr.soc = ws;
 		}
 	};
 
+	//User leaves the group and other users are informed
 	this.leaveGroup = function(data,ws){
 
 		var authData = this.validRequest(data.usr,data.grp);
@@ -312,6 +471,7 @@ function groups(config,app,ccdEvents){
 		}
 	};
 
+	//Removes a player from the given group
 	this.removePlayer = function(group,userID){
 		var removeIndex = -1;
 		for(var i=0, len = group.player.length; i <len; i++){
@@ -328,8 +488,17 @@ function groups(config,app,ccdEvents){
 		return false;
 	};
 
-}
+	//Send draw data to group, start says if to move pen to point or ongoing drawing
+	this.draw = function(data,ws,start){
+		var authData = this.validRequest(data.usr,data.grp);
+		if(authData)
+		{
+			//TODO implement message to share draw data
+		}
+	};
 
+}
+//Init plugin function for nodjs
 exports.initGroups = function(config,app,ccdEvents){
 
 	var manager = new groups(config,app,ccdEvents);
@@ -352,6 +521,18 @@ exports.initGroups = function(config,app,ccdEvents){
 
 	ccdEvents.on('leaveGroup',function leaveGroupEvent(data,ws){
 		manager.leaveGroup(data,ws);
+	});
+
+	ccdEvents.on('ping',function pingFromClient(data,ws){
+		manager.pingFromClient(data,ws);
+	});
+
+	ccdEvents.on('drawFrom',function drawFromClient(data,ws){
+		manager.draw(data,ws,true);
+	});
+
+	ccdEvents.on('drawTo',function drawToClient(data,ws){
+		manager.draw(data,ws,false);
 	});
 
 	return manager;

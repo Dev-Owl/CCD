@@ -21,10 +21,10 @@ function ccdCanvas(options)
 			}
 		}
 	};
-	this.canvas.onmouseup = function() {
+	this.canvas.onmouseup = function(e) {
 		self.drawing = false;
 	};
-	
+
 	this.getContent = function(){
 		return self.canvas.toDataURL("image/png");
 	};
@@ -37,11 +37,11 @@ function ccdCanvas(options)
                    0, 0, self.canvas.width, self.canvas.height); // destination rectangle
 		};
 	};
-	
+
 	this.clear = function(){
 		self.context.beginPath();
 		self.context.clearRect(0, 0, self.canvas.width, self.canvas.height);
 	};
-	
+
 	return this;
 }
